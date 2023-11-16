@@ -1,0 +1,41 @@
+.button {
+    -fx-background-radius: 30em;
+    -fx-text-fill: white;
+    -fx-font-family: "Arial Narrow";
+    -fx-font-weight: bold;
+    -fx-background-color: linear-gradient(#ffead2, rgb(130, 148, 196));
+    -fx-effect: dropshadow( three-pass-box , rgba(0,0,0,0.6) , 5, 0.0 , 0 , 1 );
+}
+.label {
+    -fx-font-family: "Georgia";
+    -fx-font-size: 14px;
+    -fx-font-weight:bold;
+    -fx-text-fill: #fffdfd;
+    -fx-effect: dropshadow( gaussian , rgb(188, 128, 52), 0,0,0,1 );
+    -fx-background-color: rgb(130, 148, 196);
+}
+.table-row-cell{
+    -fx-font-family: "Georgia";
+    -fx-background-color: rgb(172, 177, 214);
+    -fx-font-size: 13px;
+}
+.table-row-cell:selected {
+    -fx-background-color: #ffead2;
+}
+.table-row-cell:selected .text {
+    -fx-fill: #000200;
+}
+.table-column {
+    -fx-alignment: CENTER;
+}
+.table-view {
+    -fx-border-color: transparent;
+    -fx-background-color: transparent;
+    -fx-table-cell-border-color: #dbdfea;
+}
+.table-view .column-header {
+    -fx-background-color: rgb(130, 148, 196);
+}
+
+
+
