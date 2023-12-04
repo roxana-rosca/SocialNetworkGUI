@@ -36,6 +36,14 @@
 .table-view .column-header {
     -fx-background-color: rgb(130, 148, 196);
 }
+.list-cell:filled:selected:focused, .list-cell:filled:selected {
+    -fx-background-color: linear-gradient(#1c6cb7 0%, #0f2c67 25%);
+    -fx-text-fill: white;
+}
 
+.list-cell:filled:hover {
+    -fx-background-color: #8bc5f3;
+    -fx-text-fill: white;
+}
 
 

@@ -1,0 +1,124 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.scene.control.*?>
+<?import javafx.scene.image.*?>
+<?import javafx.scene.layout.*?>
+
+<AnchorPane prefHeight="400.0" prefWidth="600.0" xmlns="http://javafx.com/javafx/17.0.2-ea" xmlns:fx="http://javafx.com/fxml/1" fx:controller="ro.ubbcluj.map.socialnetworkgui.UserPageController">
+    <children>
+        <TabPane prefHeight="400.0" prefWidth="600.0" stylesheets="@../css/tableStyle.css" tabClosingPolicy="UNAVAILABLE">
+            <tabs>
+                <Tab text="Chat">
+                    <content>
+                        <AnchorPane minHeight="0.0" minWidth="0.0" prefHeight="180.0" prefWidth="200.0">
+                            <children>
+                                <SplitPane dividerPositions="0.3713235294117646" prefHeight="373.0" prefWidth="600.0">
+                                    <items>
+                                        <AnchorPane minHeight="0.0" minWidth="0.0" prefHeight="160.0" prefWidth="100.0">
+                                            <children>
+                                                <ScrollPane layoutY="1.0" prefHeight="372.0" prefWidth="175.2" AnchorPane.bottomAnchor="0.0" AnchorPane.leftAnchor="0.0" AnchorPane.rightAnchor="0.0" AnchorPane.topAnchor="0.0">
+                                                    <content>
+                                                        <AnchorPane minHeight="0.0" minWidth="0.0" prefHeight="372.0" prefWidth="216.0">
+                                             <children>
+                                                <ListView fx:id="chatListView" layoutX="-2.0" layoutY="32.0" prefHeight="330.0" prefWidth="210.0" />
+                                                <Separator layoutX="-2.0" layoutY="31.0" prefHeight="3.0" prefWidth="217.0" />
+                                                <ImageView fitHeight="29.0" fitWidth="26.0" layoutX="177.0" layoutY="3.0" onMouseClicked="#handleNewConversation" pickOnBounds="true" preserveRatio="true">
+                                                   <image>
+                                                      <Image url="@../images/new_chat.png" />
+                                                   </image>
+                                                </ImageView>
+                                             </children>
+                                                        </AnchorPane>
+                                                    </content>
+                                                </ScrollPane>
+                                            </children>
+                                        </AnchorPane>
+                                        <AnchorPane minHeight="0.0" minWidth="0.0" prefHeight="160.0" prefWidth="100.0">
+                                            <children>
+                                                <SplitPane dividerPositions="0.8968682505399568" orientation="VERTICAL" prefHeight="372.0" prefWidth="373.6" AnchorPane.bottomAnchor="0.0" AnchorPane.leftAnchor="0.0" AnchorPane.rightAnchor="0.0" AnchorPane.topAnchor="0.0">
+                                                    <items>
+                                                        <AnchorPane minHeight="0.0" minWidth="0.0" prefHeight="100.0" prefWidth="160.0">
+                                                            <children>
+                                                                <ListView fx:id="messageListView" layoutX="7.0" layoutY="33.0" prefHeight="297.0" prefWidth="372.0" AnchorPane.bottomAnchor="0.0" AnchorPane.leftAnchor="0.0" AnchorPane.rightAnchor="0.0" AnchorPane.topAnchor="33.0" />
+                                                <Separator layoutY="32.0" prefHeight="3.0" prefWidth="374.0" />
+                                                <Label fx:id="receiverLabel" contentDisplay="TOP" layoutX="36.0" layoutY="5.0" prefHeight="19.0" prefWidth="336.0" textAlignment="CENTER" />
+                                                <ImageView fitHeight="27.0" fitWidth="30.0" layoutX="4.0" layoutY="2.0" pickOnBounds="true" preserveRatio="true">
+                                                   <image>
+                                                      <Image url="@../images/user.jpg" />
+                                                   </image>
+                                                </ImageView>
+                                                            </children></AnchorPane>
+                                                        <AnchorPane minHeight="0.0" minWidth="0.0" prefHeight="100.0" prefWidth="160.0">
+                                                            <children>
+                                                                <Button layoutX="305.0" layoutY="6.0" mnemonicParsing="false" onAction="#handleSendMessage" text="SEND" />
+                                                                <TextField fx:id="sendMessage" layoutX="7.0" layoutY="5.0" prefHeight="26.0" prefWidth="289.0" />
+                                                            </children></AnchorPane>
+                                                    </items>
+                                                </SplitPane>
+                                            </children>
+                                        </AnchorPane>
+                                    </items>
+                                </SplitPane>
+                            </children></AnchorPane>
+                    </content>
+                </Tab>
+                <Tab text="Friend Requests">
+                    <content>
+                        <AnchorPane minHeight="0.0" minWidth="0.0" prefHeight="180.0" prefWidth="200.0">
+                            <children>
+                                <SplitPane layoutX="-4.0" layoutY="101.0" orientation="VERTICAL" prefHeight="371.2" prefWidth="600.0" AnchorPane.bottomAnchor="0.0" AnchorPane.leftAnchor="0.0" AnchorPane.rightAnchor="0.0" AnchorPane.topAnchor="0.0">
+                                    <items>
+                                        <AnchorPane minHeight="0.0" minWidth="0.0" prefHeight="100.0" prefWidth="160.0">
+                                            <children>
+                                                <TableView fx:id="friendRequestsTableView" layoutX="14.0" layoutY="14.0" prefHeight="294.0" prefWidth="182.0">
+                                                    <columns>
+                                                        <TableColumn fx:id="tableColumnUsernameFriendRequestsTableView" prefWidth="176.60000801086426" text="username" />
+                                                    </columns>
+                                                </TableView>
+                                                <Button layoutX="286.0" layoutY="71.0" mnemonicParsing="false" onAction="#handleAcceptFriendRequest" prefHeight="35.0" prefWidth="78.0" text="ACCEPT" textAlignment="CENTER" />
+                                                <Button layoutX="429.0" layoutY="73.0" mnemonicParsing="false" onAction="#handleRejectFriendRequest" prefHeight="35.0" prefWidth="80.0" text="REJECT" textAlignment="CENTER" />
+                                                <ImageView fitHeight="237.0" fitWidth="390.0" layoutX="218.0" layoutY="134.0" pickOnBounds="true" preserveRatio="true">
+                                                    <image>
+                                                        <Image url="@../images/friendship.png" />
+                                                    </image>
+                                                </ImageView>
+                                            </children></AnchorPane>
+                                    </items>
+                                </SplitPane>
+                            </children></AnchorPane>
+                    </content>
+                </Tab>
+                <Tab text="Make Friends">
+                    <content>
+                        <AnchorPane minHeight="0.0" minWidth="0.0" prefHeight="180.0" prefWidth="200.0">
+                            <children>
+                                <SplitPane layoutX="-4.0" layoutY="101.0" orientation="VERTICAL" prefHeight="371.2" prefWidth="600.0" AnchorPane.bottomAnchor="0.0" AnchorPane.leftAnchor="0.0" AnchorPane.rightAnchor="0.0" AnchorPane.topAnchor="0.0">
+                                    <items>
+                                        <AnchorPane minHeight="0.0" minWidth="0.0" prefHeight="100.0" prefWidth="160.0">
+                                            <children>
+                                                <TableView fx:id="friendsTableView" layoutX="14.0" layoutY="14.0" prefHeight="294.0" prefWidth="182.0">
+                                                    <columns>
+                                                        <TableColumn fx:id="tableColumnUsernameFriendsTableView" prefWidth="176.60000801086426" text="friends" />
+                                                    </columns>
+                                                </TableView>
+                                                <ImageView fitHeight="174.0" fitWidth="150.0" layoutX="215.0" layoutY="37.0" pickOnBounds="true" preserveRatio="true">
+                                                    <image>
+                                                        <Image url="@../images/connect.png" />
+                                                    </image>
+                                                </ImageView>
+                                                <TableView fx:id="discoverTableView" layoutX="385.0" layoutY="18.0" prefHeight="290.0" prefWidth="184.0">
+                                                    <columns>
+                                                        <TableColumn fx:id="tableColumnUsernameDiscoverTableView" prefWidth="178.39999389648438" text="discover" />
+                                                    </columns>
+                                                </TableView>
+                                            </children></AnchorPane>
+                                    </items>
+                                </SplitPane>
+                            </children>
+                        </AnchorPane>
+                    </content>
+                </Tab>
+            </tabs>
+        </TabPane>
+    </children>
+</AnchorPane>

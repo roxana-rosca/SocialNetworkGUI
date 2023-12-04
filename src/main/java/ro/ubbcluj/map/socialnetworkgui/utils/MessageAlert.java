@@ -1,4 +1,4 @@
-package ro.ubbcluj.map.socialnetworkgui;
+package ro.ubbcluj.map.socialnetworkgui.utils;
 
 import javafx.scene.control.Alert;
 import javafx.stage.Stage;

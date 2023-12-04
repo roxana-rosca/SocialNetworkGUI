@@ -6,9 +6,11 @@ import javafx.scene.Scene;
 import javafx.scene.image.Image;
 import javafx.scene.layout.AnchorPane;
 import javafx.stage.Stage;
+import ro.ubbcluj.map.socialnetworkgui.controller.UserController;
 import ro.ubbcluj.map.socialnetworkgui.domain.validator.FriendshipValidator;
 import ro.ubbcluj.map.socialnetworkgui.domain.validator.UserValidator;
 import ro.ubbcluj.map.socialnetworkgui.repository.database.FriendshipDBRepository;
+import ro.ubbcluj.map.socialnetworkgui.repository.database.MessageDBRepository;
 import ro.ubbcluj.map.socialnetworkgui.repository.database.UserDBRepository;
 import ro.ubbcluj.map.socialnetworkgui.service.FriendshipService;
 import ro.ubbcluj.map.socialnetworkgui.service.NetworkService;
@@ -21,6 +23,7 @@ public class StartApplication extends Application{
 
     UserDBRepository userDBRepository;
     FriendshipDBRepository friendshipDBRepository;
+    MessageDBRepository messageDBRepository;
     UserService userService;
     FriendshipService friendshipService;
     NetworkService networkService;
@@ -32,7 +35,8 @@ public class StartApplication extends Application{
         String sqlPassword = "postgres";
 
         userDBRepository = new UserDBRepository(url, sqlUsername, sqlPassword, new UserValidator());
-        userService = new UserService(userDBRepository);
+        messageDBRepository = new MessageDBRepository(url, sqlUsername, sqlPassword);
+        userService = new UserService(userDBRepository, messageDBRepository);
 
         friendshipDBRepository = new FriendshipDBRepository(url,sqlUsername, sqlPassword, new FriendshipValidator());
         friendshipService = new FriendshipService(friendshipDBRepository);
@@ -51,12 +55,20 @@ public class StartApplication extends Application{
     }
 
     private void initView(Stage primaryStage) throws IOException{
-        FXMLLoader userLoader = new FXMLLoader();
+        /*FXMLLoader userLoader = new FXMLLoader();
         userLoader.setLocation(getClass().getResource("views/user-view.fxml"));
         AnchorPane userLayout = userLoader.load();
         primaryStage.setScene(new Scene(userLayout));
 
         UserController userController = userLoader.getController();
-        userController.setUserService(networkService);
+        userController.setUserService(networkService);*/
+
+        FXMLLoader networkLoader = new FXMLLoader();
+        networkLoader.setLocation(getClass().getResource("views/network-view.fxml"));
+        AnchorPane userLayout = networkLoader.load();
+        primaryStage.setScene(new Scene(userLayout));
+
+        NetworkController networkController = networkLoader.getController();
+        networkController.setUserService(networkService);
     }
 }

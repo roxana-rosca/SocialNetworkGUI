@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.scene.control.*?>
+<?import javafx.scene.image.*?>
+<?import javafx.scene.layout.*?>
+
+<AnchorPane prefHeight="400.0" prefWidth="400.0" stylesheets="@../css/tableStyle.css" xmlns="http://javafx.com/javafx/17.0.2-ea" xmlns:fx="http://javafx.com/fxml/1" fx:controller="ro.ubbcluj.map.socialnetworkgui.controller.NewChatController">
+   <children>
+      <Label layoutX="29.0" layoutY="14.0" prefHeight="16.0" prefWidth="330.0" text="   Pick one or more users to start a chat with!" textAlignment="CENTER" />
+      <ListView fx:id="newChatListView" layoutX="14.0" layoutY="40.0" prefHeight="246.0" prefWidth="358.0" />
+      <Button layoutX="289.0" layoutY="354.0" mnemonicParsing="false" onAction="#handleSendCreateNewConvo" prefHeight="30.0" prefWidth="79.0" text="DONE" />
+      <ImageView fitHeight="116.0" fitWidth="169.0" layoutX="14.0" layoutY="298.0" pickOnBounds="true" preserveRatio="true">
+         <image>
+            <Image url="@../images/community.png" />
+         </image>
+      </ImageView>
+   </children>
+</AnchorPane>

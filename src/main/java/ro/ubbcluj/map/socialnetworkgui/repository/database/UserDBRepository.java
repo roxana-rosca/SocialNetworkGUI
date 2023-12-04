@@ -146,6 +146,7 @@ public class UserDBRepository extends AbstractDBRepository<Long, User>{
 
                 if(id.isPresent()){
                     entity.setId(id.get());
+
                     // salvare si in memorie
                     super.save(entity);
                 }
@@ -187,6 +188,7 @@ public class UserDBRepository extends AbstractDBRepository<Long, User>{
                     if(!u.getId().equals(longID)){
                         if(u.getFriends().contains(foundUser.get())){
                             u.deleteFriend(foundUser.get());
+
                             super.update(u);
                         }
                     }
@@ -224,7 +226,7 @@ public class UserDBRepository extends AbstractDBRepository<Long, User>{
 
             int response = statement.executeUpdate();
 
-            // + in memorie!!
+            // + update in memorie!!
             if(response != 0){
                 Optional<User> updated = super.update(entity);
 
@@ -296,11 +298,11 @@ public class UserDBRepository extends AbstractDBRepository<Long, User>{
         String getFriendsSQL =
                 "select f.id_friend2, u.*, f.friends_from " +
                 "from friendships f left join users u on f.id_friend2 = u.id " +
-                "where f.id_friend1 = ? " +
+                "where f.id_friend1 = ? and f.status='accepted'" +
                 "union " +
                 "select f.id_friend1, u.*, f.friends_from " +
                 "from friendships f left join users u on f.id_friend1 = u.id " +
-                "where f.id_friend2 = ?";
+                "where f.id_friend2 = ? and f.status='accepted'";
         try(Connection connection = DriverManager.getConnection(url, sqlUsername, sqlPassword);
             PreparedStatement statement = connection.prepareStatement(getFriendsSQL)){
             statement.setInt(1, id_friend.intValue());

@@ -18,6 +18,10 @@ public class UserChangeEvent implements Event{
         this.data = data;
     }
 
+    public UserChangeEvent(ChangeEventType type) {
+        this.type = type;
+    }
+
     public ChangeEventType getType() {
         return type;
     }

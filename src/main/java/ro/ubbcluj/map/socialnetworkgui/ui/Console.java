@@ -1,11 +1,13 @@
 package ro.ubbcluj.map.socialnetworkgui.ui;
 
 import ro.ubbcluj.map.socialnetworkgui.domain.Friendship;
+import ro.ubbcluj.map.socialnetworkgui.domain.Message;
 import ro.ubbcluj.map.socialnetworkgui.domain.Tuple;
 import ro.ubbcluj.map.socialnetworkgui.domain.User;
 import ro.ubbcluj.map.socialnetworkgui.domain.validator.ValidationException;
 import ro.ubbcluj.map.socialnetworkgui.service.NetworkService;
 
+import java.lang.reflect.InvocationTargetException;
 import java.sql.Date;
 import java.time.LocalDate;
 import java.util.List;
@@ -38,6 +40,11 @@ public class Console {
         System.out.println("9. Print list of users with at least n friends.");
         System.out.println("10. Print all the friendships of a user, from a specific month.");
         System.out.println("11. Print all the users that contain a given string in their name.");
+        System.out.println("12. Update user.");
+        System.out.println("13. See all messages.");
+        System.out.println("14. See all messages of 2 users.");
+        System.out.println("15. Send a message.");
+        System.out.println("16. Testare friend request.");
         System.out.println("0. EXIT");
     }
 
@@ -204,6 +211,23 @@ public class Console {
         }
     }
 
+    private void updateUser(){
+        // username duplicat
+
+        String currentUsername = "abc";
+
+        String newUsername = "abc";
+        String newFirstName = "aaa";
+        String newLastName = "aaa";
+
+        try{
+            networkService.updateUser(currentUsername, newUsername, newFirstName, newLastName);
+        }
+        catch(ValidationException e){
+            System.out.println(e);
+        }
+    }
+
     /**
      * Afiseaza userii care contin un string dat in numele lor.
      */
@@ -220,6 +244,72 @@ public class Console {
         } else {
             userList.forEach(System.out::println);
         }
+    }
+
+    /**
+     * Afiseaza toate mesajele existente.
+     */
+    private void printAllMessages(){
+        Iterable<Message> allMessages = networkService.getAllMessages();
+
+        allMessages.forEach(System.out::println);
+    }
+
+    /**
+     * Afiseaza mesajele in ordine cronologica intre 2 useri.
+     */
+    private void printAllMessagesOf2Users() {
+        String username1 = "lee.zoe";
+        String username2 = "jrr.123";
+
+        Iterable<Message> allMessages = networkService.getChatForUsers(username1, username2);
+        allMessages.forEach(System.out::println);
+    }
+
+    private void addMessage(){
+        String username1 = "lee.zoe";
+        String username2 = "jrr.123";
+        String description = "heyy.. sorry for bothering you... can you help me with something?";
+
+        try{
+            networkService.sendMessage(username1, username2, description);
+//            if(message.isPresent()){
+//                System.out.println("Mesaj trimis cu succes");
+//            }
+        }
+        catch(ValidationException ve){
+            System.out.println(ve);
+        }
+    }
+
+    private void friendRequest(){
+        // pending
+        System.out.println("Creare prietenie...PENDING [aaa-bbb]");
+        String sender = "aaa";
+        String receiver = "bbb";
+        networkService.sendFriendRequest(sender, receiver);
+        printAllFriendships();
+
+        // accept
+        System.out.println("Acceptare prietenie...ACCEPTED [aaa-bbb]");
+        String cine = "bbb";
+        String peCine = "aaa";
+        networkService.acceptFriendRequest(cine, peCine);
+        printAllFriendships();
+
+        // pending
+        System.out.println("Creare prietenie...PENDING [ccc-bbb]");
+        String sender1 = "ccc";
+        String receiver1 = "bbb";
+        networkService.sendFriendRequest(sender1, receiver1);
+        printAllFriendships();
+
+        // reject
+        System.out.println("Decline friendship...REJECT [bbb-ccc]");
+        String cine1 = "bbb";
+        String peCine1 = "ccc";
+        networkService.rejectFriendRequest(cine1, peCine1);
+        printAllFriendships();
     }
 
     public void start() {
@@ -264,6 +354,21 @@ public class Console {
                     break;
                 case 11:
                     printUsersWithContainedString();
+                    break;
+                case 12:
+                    updateUser();
+                    break;
+                case 13:
+                    printAllMessages();
+                    break;
+                case 14:
+                    printAllMessagesOf2Users();
+                    break;
+                case 15:
+                    addMessage();
+                    break;
+                case 16:
+                    friendRequest();
                     break;
                 default:
                     System.out.println("Wrong command!");

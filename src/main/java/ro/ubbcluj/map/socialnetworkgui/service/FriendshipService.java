@@ -1,9 +1,11 @@
 package ro.ubbcluj.map.socialnetworkgui.service;
 
+import ro.ubbcluj.map.socialnetworkgui.domain.FriendRequest;
 import ro.ubbcluj.map.socialnetworkgui.domain.Friendship;
 import ro.ubbcluj.map.socialnetworkgui.domain.Tuple;
 import ro.ubbcluj.map.socialnetworkgui.repository.Repository;
 
+import java.time.LocalDate;
 import java.util.Optional;
 
 public class FriendshipService implements ServiceInterface<Tuple<Long, Long>, Friendship> {
@@ -40,7 +42,7 @@ public class FriendshipService implements ServiceInterface<Tuple<Long, Long>, Fr
 
     @Override
     public Optional<Friendship> updateEntity(Friendship entity) {
-        return Optional.empty();
+        return friendshipRepo.update(entity);
     }
 
     /**
@@ -53,5 +55,22 @@ public class FriendshipService implements ServiceInterface<Tuple<Long, Long>, Fr
     public Optional<Friendship> getFriendship(Long idUser1, Long idUser2) {
         Tuple<Long, Long> f = new Tuple<>(idUser1, idUser2);
         return friendshipRepo.findOne(f);
+    }
+
+    public boolean sendFriendRequest(Friendship friendship){
+        friendship.setFrienshipStatus(FriendRequest.PENDING);
+        return addEntity(friendship);
+    }
+
+    public Optional<Friendship> acceptFriendRequest(Friendship friendship){
+        friendship.setFrienshipStatus(FriendRequest.ACCEPTED);
+        // de actualizat data
+        friendship.setDate(LocalDate.now());
+        return updateEntity(friendship);
+    }
+
+    public boolean rejectFriendRequest(Friendship friendship){
+        friendship.setFrienshipStatus(FriendRequest.REJECTED);
+        return deleteFriendship(friendship, null);
     }
 }

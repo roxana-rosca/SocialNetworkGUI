@@ -1,10 +1,13 @@
 package ro.ubbcluj.map.socialnetworkgui.service;
 
 import ro.ubbcluj.map.socialnetworkgui.domain.Friendship;
+import ro.ubbcluj.map.socialnetworkgui.domain.Message;
 import ro.ubbcluj.map.socialnetworkgui.domain.Tuple;
 import ro.ubbcluj.map.socialnetworkgui.domain.User;
 import ro.ubbcluj.map.socialnetworkgui.domain.validator.ValidationException;
 import ro.ubbcluj.map.socialnetworkgui.repository.Repository;
+import ro.ubbcluj.map.socialnetworkgui.repository.database.MessageDBRepository;
+import ro.ubbcluj.map.socialnetworkgui.repository.database.UserDBRepository;
 import ro.ubbcluj.map.socialnetworkgui.utils.Utils;
 
 import java.sql.Date;
@@ -17,10 +20,13 @@ import java.util.stream.StreamSupport;
 public class UserService implements ServiceInterface<Long, User> {
     private final Repository<Long, User> userRepo;
 
-    public UserService(Repository<Long, User> userRepo) {
-        this.userRepo = userRepo;
-    }
+    private final Repository<Long, Message> messageRepo;
 
+    public UserService(Repository<Long, User> userRepo, Repository<Long, Message> messageRepo) {
+        this.userRepo = userRepo;
+
+        this.messageRepo = messageRepo;
+    }
     @Override
     public boolean addEntity(User entity) {
         Optional<User> addedUser;
@@ -300,5 +306,83 @@ public class UserService implements ServiceInterface<Long, User> {
         return StreamSupport.stream(userIterable.spliterator(), false)
                             .filter(contineString)
                             .toList();
+    }
+
+    /**
+     * @return toate mesajele existente
+     */
+    public Iterable<Message> getAllMessages(){
+        return messageRepo.findAll();
+    }
+
+    /**
+     * Adauga un mesaj
+     * @param message: mesajul de adaugat
+     * @return Optional.of(messaje) daca s-a adaugat cu succes, Optional.empty() altfel
+     */
+    public Optional<Message> addMessage(Message message){
+        return messageRepo.save(message);
+    }
+
+    /**
+     * Returneaza un Iterable cu mesajele dintre 2 useri.
+     * @param user1: un User
+     * @param user2: un User
+     * @return un Iterable cu mesajele dintre 2 useri
+     */
+    public Iterable<Message> getChatForUsers(User user1, User user2) {
+        // down cast
+        MessageDBRepository messageDBRepository =  (MessageDBRepository) messageRepo;
+        return messageDBRepository.findChatForUsers(user1.getId(), user2.getId());
+    }
+
+    /**
+     *
+     * @param username: username-ul unui user
+     * @return o lista cu username-urile prietenilor Userului cu username-ul dat
+     */
+    public List<String> getUsernameForFriends(String username){
+        Optional<User> user = getUserByUserName(username);
+        List<String> friendsUsernames = null;
+
+        if(user.isPresent()){
+            UserDBRepository userDBRepository = (UserDBRepository) userRepo;
+            Set<Tuple<User, Date>> friends = userDBRepository.getFriends(user.get().getId());
+
+            friendsUsernames = new ArrayList<>();
+
+            for(var f:friends){
+                friendsUsernames.add(f.getE1().getUserName());
+            }
+        }
+
+        return friendsUsernames;
+    }
+
+    /**
+     * @param username: username-ul unui User
+     * @return o lista cu persoanele care nu sunt prieteni cu Userul cu username-ul dat
+     */
+    public List<String> getUsernameForNewPeople(String username){
+        List<String> friends = getUsernameForFriends(username);
+        List<String> newPeople = new ArrayList<>();
+
+        if(friends!=null){
+            Iterable<User> allUsers = getAll();
+            newPeople = StreamSupport.stream(allUsers.spliterator(), false)
+                    .filter(user -> !user.getUserName().equals(username) && !friends.contains(user.getUserName()))
+                    .map(User::getUserName)
+                    .toList();
+            return newPeople;
+        }
+        else{
+            return null;
+        }
+    }
+
+    public Optional<Message> sendMessage(User sender, User receiver, String description){
+        Message message = new Message(sender.getId(), receiver.getId(), description);
+
+        return messageRepo.save(message);
     }
 }

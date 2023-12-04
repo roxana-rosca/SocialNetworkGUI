@@ -1,8 +1,7 @@
 package ro.ubbcluj.map.socialnetworkgui.service;
 
-import ro.ubbcluj.map.socialnetworkgui.domain.Friendship;
-import ro.ubbcluj.map.socialnetworkgui.domain.Tuple;
-import ro.ubbcluj.map.socialnetworkgui.domain.User;
+import javafx.util.Pair;
+import ro.ubbcluj.map.socialnetworkgui.domain.*;
 import ro.ubbcluj.map.socialnetworkgui.domain.validator.ValidationException;
 import ro.ubbcluj.map.socialnetworkgui.utils.events.ChangeEventType;
 import ro.ubbcluj.map.socialnetworkgui.utils.events.UserChangeEvent;
@@ -59,7 +58,8 @@ public class NetworkService implements Observable<UserChangeEvent> {
             Long id1 = friendship.getId().getLeft();
             Long id2 = friendship.getId().getRight();
 
-            updateUserFriends(id1, id2);
+            if(friendship.getFrienshipStatus() == FriendRequest.ACCEPTED)
+                updateUserFriends(id1, id2);
         }
     }
 
@@ -318,5 +318,196 @@ public class NetworkService implements Observable<UserChangeEvent> {
     @Override
     public void notifyObservers(UserChangeEvent t) {
         observers.stream().forEach(x->x.update(t));
+    }
+
+    public Iterable<Message> getAllMessages(){
+        return userService.getAllMessages();
+    }
+
+    /**
+     * Returneaza o lista cu perechile unice de username-uri care au o conversatie.
+     * @return
+     */
+    public Set<Tuple<String, String>> getUsernamesForMessages(){
+        Set<Tuple<String, String>> result = new HashSet<>();
+
+        Iterable<Message> allMessages = getAllMessages();
+
+        for(Message m:allMessages){
+            Optional<User> sender = userService.getUserByID(m.getIDSender());
+            Optional<User> receiver = userService.getUserByID(m.getIDReceiver());
+            if(sender.isPresent() && receiver.isPresent()){
+                Tuple<String, String> pair = new Tuple<>(sender.get().getUserName(), receiver.get().getUserName());
+                Tuple<String, String> reversedPair = new Tuple<>(receiver.get().getUserName(), sender.get().getUserName());
+
+                if(!result.contains(reversedPair))
+                    result.add(pair);
+            }
+
+        }
+        return result;
+    }
+
+    /**
+     * Returneaza o lista cu username-urile cu care un user a avut conversatii.
+     * @return
+     */
+    public Set<String> getUsernamesForMessagesOfUser(String username){
+        Set<String> result = new HashSet<>();
+
+        Iterable<Message> allMessages = getAllMessages();
+
+        Optional<User> user = userService.getUserByUserName(username);
+
+        if(user.isEmpty())
+            return result;
+
+        for(Message m:allMessages){
+            if(m.getIDReceiver().equals(user.get().getId())){
+                Optional<User> sender = userService.getUserByID(m.getIDSender());
+                sender.ifPresent(value -> result.add(value.getUserName()));
+            }
+            else if(m.getIDSender().equals(user.get().getId())){
+                Optional<User> receiver = userService.getUserByID(m.getIDReceiver());
+                receiver.ifPresent(value -> result.add(value.getUserName()));
+            }
+        }
+
+        return result;
+    }
+
+    public Iterable<Message> getChatForUsers(String username1, String username2) {
+        Optional<User> user1 = userService.getUserByUserName(username1);
+        Optional<User> user2 = userService.getUserByUserName(username2);
+
+        if(user1.isPresent() && user2.isPresent()){
+            return userService.getChatForUsers(user1.get(), user2.get());
+        }
+        else{
+            throw new ValidationException("This user doesn't exist!");
+        }
+    }
+
+    public boolean sendFriendRequest(String sender, String receiver){
+        Optional<User> user1 = userService.getUserByUserName(sender);
+        Optional<User> user2 = userService.getUserByUserName(receiver);
+
+        if (user1.isEmpty() || user2.isEmpty()) {
+            throw new ValidationException("User invalid!");
+        }
+
+//        if (!userService.createFriendship(user1.get(), user2.get()))
+//            return false;
+
+        if(friendshipService.getFriendship(user1.get().getId(), user2.get().getId()).isPresent()){
+            return false;
+        }
+
+        Friendship friendship = new Friendship();
+        Tuple<Long, Long> f = new Tuple<>(user1.get().getId(), user2.get().getId());
+        friendship.setId(f);
+
+        return friendshipService.sendFriendRequest(friendship);
+
+    }
+
+    public void acceptFriendRequest(String cine, String peCine){
+        Optional<User> user1 = userService.getUserByUserName(cine);
+        Optional<User> user2 = userService.getUserByUserName(peCine);
+
+        if (user1.isEmpty() || user2.isEmpty()) {
+            throw new ValidationException("User invalid!");
+        }
+
+        if (!userService.createFriendship(user1.get(), user2.get()))
+            throw new ValidationException("Cele 2 entitati trebuie sa fie diferite!");
+
+
+        Optional<Friendship> friendship = friendshipService.getFriendship(user1.get().getId(), user2.get().getId());
+        if(friendship.isPresent()){
+            friendshipService.acceptFriendRequest(friendship.get());
+
+            notifyObservers(new UserChangeEvent(ChangeEventType.ADD));
+        }
+        else{
+            throw new ValidationException("Prietenia nu exista!");
+        }
+    }
+
+    public void rejectFriendRequest(String cine, String peCine){
+        Optional<User> user1 = userService.getUserByUserName(cine);
+        Optional<User> user2 = userService.getUserByUserName(peCine);
+
+        if (user1.isEmpty() || user2.isEmpty()) {
+            throw new ValidationException("User invalid!");
+        }
+
+
+        Optional<Friendship> friendship = friendshipService.getFriendship(user1.get().getId(), user2.get().getId());
+        if(friendship.isPresent()){
+            boolean flag = friendshipService.rejectFriendRequest(friendship.get());
+
+            notifyObservers(new UserChangeEvent(ChangeEventType.DELETE));
+
+        }
+        else{
+            throw new ValidationException("Prietenia nu exista!");
+        }
+    }
+
+    /**
+     * @return toate cererile de prietenie PENDING
+     */
+    public List<Friendship> getAllFriendRequests(){
+        Iterable<Friendship> friendshipsIterable = getAllFriendships();
+        return StreamSupport.stream(friendshipsIterable.spliterator(), false)
+                .filter(friendship -> friendship.getFrienshipStatus().equals(FriendRequest.PENDING))
+                .toList();
+    }
+
+    public List<String> getFriendRequestsForUsername(String username){
+        Optional<User> user = userService.getUserByUserName(username);
+        List<String> senderUsernames = null;
+
+        if(user.isPresent()){
+            // friendship: sender(E1), receiver(E2)
+            List<Friendship> allFriendRequests = getAllFriendRequests();
+
+            senderUsernames = allFriendRequests.stream()
+                    .filter(friendship -> friendship.getId().getE2().equals(user.get().getId()))
+                    .map(friendship -> userService.getUserByID(friendship.getId().getE1()).get().getUserName())
+                    .toList();
+
+        }
+        return senderUsernames;
+    }
+
+    public List<String> getUsernameForFriends(String username){
+        return userService.getUsernameForFriends(username);
+    }
+
+    public List<String> getUsernameForNewPeople(String username){
+        return userService.getUsernameForNewPeople(username);
+    }
+
+    public void sendMessage(String usernameSender, String usernameReceiver, String description){
+        Optional<User> sender = userService.getUserByUserName(usernameSender);
+        Optional<User> receiver = userService.getUserByUserName(usernameReceiver);
+
+        if(sender.isPresent() && receiver.isPresent()){
+            userService.sendMessage(sender.get(), receiver.get(), description);
+            notifyObservers(new UserChangeEvent(ChangeEventType.ADD));
+        }
+    }
+
+    public List<String> getAllUsernamesExceptOfUser(User user){
+        String username = user.getUserName();
+
+        Iterable<User> allUsers = getAllUsers();
+
+        return StreamSupport.stream(allUsers.spliterator(), false)
+                .map(User::getUserName)
+                .filter(userName -> !userName.equals(username))
+                .toList();
     }
 }
