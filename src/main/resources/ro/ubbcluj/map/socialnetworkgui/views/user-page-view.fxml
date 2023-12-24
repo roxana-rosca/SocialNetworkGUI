@@ -16,11 +16,11 @@
                                     <items>
                                         <AnchorPane minHeight="0.0" minWidth="0.0" prefHeight="160.0" prefWidth="100.0">
                                             <children>
-                                                <ScrollPane layoutY="1.0" prefHeight="372.0" prefWidth="175.2" AnchorPane.bottomAnchor="0.0" AnchorPane.leftAnchor="0.0" AnchorPane.rightAnchor="0.0" AnchorPane.topAnchor="0.0">
+                                                <ScrollPane layoutY="1.0" prefHeight="335.0" prefWidth="219.0" AnchorPane.bottomAnchor="37.0" AnchorPane.leftAnchor="0.0" AnchorPane.rightAnchor="0.0" AnchorPane.topAnchor="0.0">
                                                     <content>
                                                         <AnchorPane minHeight="0.0" minWidth="0.0" prefHeight="372.0" prefWidth="216.0">
                                              <children>
-                                                <ListView fx:id="chatListView" layoutX="-2.0" layoutY="32.0" prefHeight="330.0" prefWidth="210.0" />
+                                                <ListView fx:id="chatListView" layoutX="-2.0" layoutY="32.0" prefHeight="302.0" prefWidth="210.0" />
                                                 <Separator layoutX="-2.0" layoutY="31.0" prefHeight="3.0" prefWidth="217.0" />
                                                 <ImageView fitHeight="29.0" fitWidth="26.0" layoutX="177.0" layoutY="3.0" onMouseClicked="#handleNewConversation" pickOnBounds="true" preserveRatio="true">
                                                    <image>
@@ -116,6 +116,20 @@
                                 </SplitPane>
                             </children>
                         </AnchorPane>
+                    </content>
+                </Tab>
+                <Tab text="Settings">
+                    <content>
+                        <AnchorPane minHeight="0.0" minWidth="0.0" prefHeight="180.0" prefWidth="200.0">
+                     <children>
+                        <ImageView fitHeight="372.0" fitWidth="394.0" layoutX="-1.0" pickOnBounds="true" preserveRatio="true">
+                           <image>
+                              <Image url="@../images/people_waving.jpg" />
+                           </image>
+                        </ImageView>
+                        <Button layoutX="449.0" layoutY="78.0" mnemonicParsing="false" onAction="#handleSignOut" prefHeight="37.0" prefWidth="81.0" text="Sign out" />
+                        <Button layoutX="437.0" layoutY="146.0" mnemonicParsing="false" onAction="#handleDeleteAccount" prefHeight="40.0" prefWidth="105.0" text="Delete account" />
+                     </children></AnchorPane>
                     </content>
                 </Tab>
             </tabs>

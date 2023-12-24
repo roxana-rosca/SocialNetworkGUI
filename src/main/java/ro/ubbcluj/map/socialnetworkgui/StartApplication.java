@@ -6,12 +6,10 @@ import javafx.scene.Scene;
 import javafx.scene.image.Image;
 import javafx.scene.layout.AnchorPane;
 import javafx.stage.Stage;
-import ro.ubbcluj.map.socialnetworkgui.controller.UserController;
 import ro.ubbcluj.map.socialnetworkgui.domain.validator.FriendshipValidator;
 import ro.ubbcluj.map.socialnetworkgui.domain.validator.UserValidator;
-import ro.ubbcluj.map.socialnetworkgui.repository.database.FriendshipDBRepository;
-import ro.ubbcluj.map.socialnetworkgui.repository.database.MessageDBRepository;
-import ro.ubbcluj.map.socialnetworkgui.repository.database.UserDBRepository;
+import ro.ubbcluj.map.socialnetworkgui.repository.database.*;
+import ro.ubbcluj.map.socialnetworkgui.repository.database.in_memory.UserDBInMemoryRepository;
 import ro.ubbcluj.map.socialnetworkgui.service.FriendshipService;
 import ro.ubbcluj.map.socialnetworkgui.service.NetworkService;
 import ro.ubbcluj.map.socialnetworkgui.service.UserService;
@@ -21,9 +19,12 @@ import java.io.IOException;
 
 public class StartApplication extends Application{
 
+    UserDBInMemoryRepository userDBInMemoryRepository;
     UserDBRepository userDBRepository;
+    UserDBPagingRepository userPagingRepository;
     FriendshipDBRepository friendshipDBRepository;
     MessageDBRepository messageDBRepository;
+    MessageDBPagingRepository messagePagingRepository;
     UserService userService;
     FriendshipService friendshipService;
     NetworkService networkService;
@@ -34,9 +35,13 @@ public class StartApplication extends Application{
         String sqlUsername = "postgres";
         String sqlPassword = "postgres";
 
-        userDBRepository = new UserDBRepository(url, sqlUsername, sqlPassword, new UserValidator());
-        messageDBRepository = new MessageDBRepository(url, sqlUsername, sqlPassword);
-        userService = new UserService(userDBRepository, messageDBRepository);
+//        userDBInMemoryRepository = new UserDBInMemoryRepository(url, sqlUsername, sqlPassword, new UserValidator());
+//        userDBRepository = new UserDBRepository(url, sqlUsername, sqlPassword, new UserValidator());
+        userPagingRepository = new UserDBPagingRepository(url, sqlUsername, sqlPassword, new UserValidator());
+//        messageDBRepository = new MessageDBRepository(url, sqlUsername, sqlPassword);
+        messagePagingRepository = new MessageDBPagingRepository(url, sqlUsername, sqlPassword);
+
+        userService = new UserService(userPagingRepository, messagePagingRepository);
 
         friendshipDBRepository = new FriendshipDBRepository(url,sqlUsername, sqlPassword, new FriendshipValidator());
         friendshipService = new FriendshipService(friendshipDBRepository);
@@ -45,7 +50,7 @@ public class StartApplication extends Application{
 
         initView(primaryStage);
         primaryStage.setWidth(600);
-        primaryStage.setTitle("Social Network");
+        primaryStage.setTitle("Social Network ~ Log in");
         primaryStage.getIcons().add(new Image("C:\\Users\\roxan\\IdeaProjects\\map\\SocialNetworkGUI\\src\\main\\resources\\ro\\ubbcluj\\map\\socialnetworkgui\\images\\butterfly.png"));
         primaryStage.show();
     }
@@ -63,12 +68,20 @@ public class StartApplication extends Application{
         UserController userController = userLoader.getController();
         userController.setUserService(networkService);*/
 
-        FXMLLoader networkLoader = new FXMLLoader();
+        /*FXMLLoader networkLoader = new FXMLLoader();
         networkLoader.setLocation(getClass().getResource("views/network-view.fxml"));
         AnchorPane userLayout = networkLoader.load();
         primaryStage.setScene(new Scene(userLayout));
 
         NetworkController networkController = networkLoader.getController();
+        networkController.setUserService(networkService);*/
+
+        FXMLLoader networkLoader = new FXMLLoader();
+        networkLoader.setLocation(getClass().getResource("views/log-in-view.fxml"));
+        AnchorPane userLayout = networkLoader.load();
+        primaryStage.setScene(new Scene(userLayout));
+
+        LogInController networkController = networkLoader.getController();
         networkController.setUserService(networkService);
     }
 }

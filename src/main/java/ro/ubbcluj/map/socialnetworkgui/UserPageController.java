@@ -24,6 +24,7 @@ import ro.ubbcluj.map.socialnetworkgui.utils.observer.Observer;
 
 import java.io.IOException;
 import java.util.List;
+import java.util.Optional;
 import java.util.Set;
 import java.util.stream.StreamSupport;
 
@@ -328,7 +329,7 @@ public class UserPageController implements Observer<UserChangeEvent> {
      * Initializeaza Chat List
      */
     private void initUsernameModel() {
-        Set<String> usernames = networkService.getUsernamesForMessagesOfUser(user.getUserName());
+        Set<String> usernames = networkService.getUsernamesForMessagesOfUser(user.getUserName(),1,10);
 
         userMessageModel.setAll(usernames);
     }
@@ -466,6 +467,7 @@ public class UserPageController implements Observer<UserChangeEvent> {
         initUsernames(user.getUserName());
         initFriends(user.getUserName());
         initDiscover(user.getUserName());
+        initUsernameModel();
 
         String selected= chatListView.getSelectionModel().getSelectedItem();
         if(selected!=null){
@@ -483,5 +485,88 @@ public class UserPageController implements Observer<UserChangeEvent> {
 
     public ObservableList<String> getUserMessageModel() {
         return userMessageModel;
+    }
+
+    @FXML
+    private void handleSignOut(ActionEvent event) {
+
+        Alert alert = new Alert(Alert.AlertType.CONFIRMATION);
+        alert.setTitle("Sign out Confirmation");
+        alert.setHeaderText("Are you sure you want to sign out?");
+
+        ButtonType buttonTypeOK = new ButtonType("OK");
+        ButtonType buttonTypeCancel = new ButtonType("Cancel");
+
+        alert.getButtonTypes().setAll(buttonTypeOK, buttonTypeCancel);
+
+        alert.showAndWait().ifPresent(response -> {
+            if (response.equals(buttonTypeOK)) {
+                initLogInStage();
+            } else {
+                System.out.println("sign out canceled.");
+            }
+        });
+
+
+    }
+
+    private void initLogInStage(){
+        try{
+            FXMLLoader logInLoader = new FXMLLoader();
+
+            logInLoader.setLocation(getClass().getResource("views/log-in-view.fxml"));
+
+            AnchorPane logInLayout = logInLoader.load();
+
+            Stage logInStage = new Stage();
+            logInStage.setScene(new Scene(logInLayout));
+
+            logInStage.setWidth(600);
+
+            logInStage.setTitle("Social Network ~ Log in");
+            logInStage.getIcons().add(new Image("C:\\Users\\roxan\\IdeaProjects\\map\\SocialNetworkGUI\\src\\main\\resources\\ro\\ubbcluj\\map\\socialnetworkgui\\images\\butterfly.png"));
+
+            LogInController logInController = logInLoader.getController();
+            logInController.setUserService(networkService);
+
+            logInStage.show();
+
+            // Close the current stage
+            ((Stage) receiverLabel.getScene().getWindow()).close();
+        }
+        catch(IOException e){
+            e.printStackTrace();
+        }
+    }
+
+    @FXML
+    private void handleDeleteAccount(ActionEvent event)
+    {
+        Alert alert = new Alert(Alert.AlertType.CONFIRMATION);
+        alert.setTitle("Delete Account Confirmation");
+        alert.setHeaderText("Are you sure you want to delete your account?");
+        alert.setContentText("This action cannot be undone.");
+
+        ButtonType buttonTypeOK = new ButtonType("OK");
+        ButtonType buttonTypeCancel = new ButtonType("Cancel");
+
+        alert.getButtonTypes().setAll(buttonTypeOK, buttonTypeCancel);
+
+        alert.showAndWait().ifPresent(response -> {
+            if (response.equals(buttonTypeOK)) {
+                Optional<User> deletedUser = networkService.deleteUser(user.getUserName());
+                if (deletedUser.isPresent()) {
+                    MessageAlert.showMessage(null, Alert.AlertType.INFORMATION, "Delete User", "Account deleted successfully!");
+                    // Close the current stage
+                    ((Stage) receiverLabel.getScene().getWindow()).close();
+                    System.out.println("Account deleted!");
+                    initLogInStage();
+                } else {
+                    MessageAlert.showErrorMessage(null, "Can't delete this account!");
+                }
+            } else {
+                System.out.println("Deletion canceled.");
+            }
+        });
     }
 }

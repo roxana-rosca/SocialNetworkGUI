@@ -2,49 +2,35 @@ package ro.ubbcluj.map.socialnetworkgui.repository.database;
 
 import ro.ubbcluj.map.socialnetworkgui.domain.Tuple;
 import ro.ubbcluj.map.socialnetworkgui.domain.User;
+import ro.ubbcluj.map.socialnetworkgui.domain.validator.UserValidator;
 import ro.ubbcluj.map.socialnetworkgui.domain.validator.ValidationException;
-import ro.ubbcluj.map.socialnetworkgui.domain.validator.Validator;
+import ro.ubbcluj.map.socialnetworkgui.repository.Repository;
 
 import java.sql.*;
-import java.sql.Date;
-import java.util.*;
+import java.util.HashSet;
+import java.util.Optional;
+import java.util.Set;
 
-public class UserDBRepository extends AbstractDBRepository<Long, User>{
+public class UserDBRepository implements Repository<Long, User> {
+    protected String url;
+    protected String sqlUsername;
+    protected String sqlPassword;
+    UserValidator userValidator;
 
-    public UserDBRepository(String url, String sqlUsername, String sqlPassword, Validator<User> userValidator) {
-        super(url, sqlUsername, sqlPassword, userValidator);
+    public UserDBRepository(String url, String sqlUsername, String sqlPassword, UserValidator userValidator) {
+        this.url = url;
+        this.sqlUsername = sqlUsername;
+        this.sqlPassword = sqlPassword;
+        this.userValidator = userValidator;
     }
 
     @Override
-    public void loadData() {
-        try (Connection connection = DriverManager.getConnection(url, sqlUsername, sqlPassword);
-             PreparedStatement statement = connection.prepareStatement("select * from users");
-             ResultSet resultSet = statement.executeQuery()
-        ){
-            while(resultSet.next()){
-                Long id = resultSet.getLong("id");
-                String firstName = resultSet.getString("first_name");
-                String lastName = resultSet.getString("last_name");
-                String username = resultSet.getString("username");
-
-                User user = new User(firstName, lastName, username);
-                user.setId(id);
-
-                // salvare si in memorie
-                super.save(user);
-            }
-        }catch(SQLException e){
-            throw new RuntimeException(e);
-        }
-    }
-
-    @Override
-    public Optional<User> findOne(Long longID) {
+    public Optional<User> findOne(Long aLong) {
         try(Connection connection = DriverManager.getConnection(url, sqlUsername, sqlPassword);
             PreparedStatement statement = connection.prepareStatement("select * from users "+
                     "where id = ?")
         ){
-            statement.setLong(1, longID);
+            statement.setLong(1, aLong);
 
             ResultSet resultSet = statement.executeQuery();
 
@@ -52,10 +38,14 @@ public class UserDBRepository extends AbstractDBRepository<Long, User>{
                 String firstName = resultSet.getString("first_name");
                 String lastName = resultSet.getString("last_name");
                 String username = resultSet.getString("username");
+                String password = resultSet.getString("password");
 
-                User user = new User(firstName, lastName, username);
+                User user = new User(firstName, lastName, username, password);
 
-                user.setId(longID);
+                user.setId(aLong);
+
+                int noFriends = getNoFriends(aLong);
+                user.setNoFriends(noFriends);
 
                 return Optional.of(user);
             }
@@ -68,54 +58,29 @@ public class UserDBRepository extends AbstractDBRepository<Long, User>{
 
     @Override
     public Iterable<User> findAll() {
-//        Set<User> allUsers = new HashSet<>();
-//
-//        try (Connection connection = DriverManager.getConnection(url, sqlUsername, sqlPassword);
-//             PreparedStatement statement = connection.prepareStatement("select * from users");
-//             ResultSet resultSet = statement.executeQuery()
-//        ){
-//            while(resultSet.next()){
-//                Long id = resultSet.getLong("id");
-//                String firstName = resultSet.getString("first_name");
-//                String lastName = resultSet.getString("last_name");
-//                String username = resultSet.getString("username");
-//
-//                User user = new User(firstName, lastName, username);
-//                user.setId(id);
-//
-//                allUsers.add(user);
-//            }
-//            return allUsers;
-//        }catch(SQLException e){
-//            throw new RuntimeException(e);
-//        }
-        return super.findAll();
-    }
+        Set<User> allUsers = new HashSet<>();
 
-    /**
-     * Returneaza id-ul entitatii din baza de date.
-     * @param entity: entitatea pentru care dorim sa aflam id-ul
-     * @return id-ul entitatii/ Optional.empty() daca aceasta nu exista in baza de date
-     */
-    private Optional<Long> getIDFromDB(User entity){
-        String getSQL = "select id from users where first_name=? and last_name=? and username=?";
-
-        try(Connection connection = DriverManager.getConnection(url, sqlUsername, sqlPassword);
-        PreparedStatement statement = connection.prepareStatement(getSQL)){
-            statement.setString(1, entity.getFirstName());
-            statement.setString(2, entity.getLastName());
-            statement.setString(3, entity.getUserName());
-
-            ResultSet resultSet = statement.executeQuery();
-
-            if(resultSet.next()){
+        try (Connection connection = DriverManager.getConnection(url, sqlUsername, sqlPassword);
+             PreparedStatement statement = connection.prepareStatement("select * from users");
+             ResultSet resultSet = statement.executeQuery()
+        ) {
+            while (resultSet.next()) {
                 Long id = resultSet.getLong("id");
+                String firstName = resultSet.getString("first_name");
+                String lastName = resultSet.getString("last_name");
+                String username = resultSet.getString("username");
+                String password = resultSet.getString("password");
 
-                return Optional.of(id);
+                User user = new User(firstName, lastName, username, password);
+                user.setId(id);
+
+                int noFriends = getNoFriends(id);
+                user.setNoFriends(noFriends);
+
+                allUsers.add(user);
             }
-            return Optional.empty();
-        }
-        catch(SQLException e){
+            return allUsers;
+        } catch (SQLException e) {
             throw new RuntimeException(e);
         }
     }
@@ -124,39 +89,24 @@ public class UserDBRepository extends AbstractDBRepository<Long, User>{
     public Optional<User> save(User entity) {
         Optional<User> u = findOneByUsername(entity.getUserName());
 
-        validator.validate(entity);
+        userValidator.validate(entity);
 
         if(u.isPresent()){
             throw new ValidationException("Acest user exista deja!");
         }
 
-        String insertSQL = "insert into users (first_name, last_name, username) values(?,?,?)";
+        String insertSQL = "insert into users (first_name, last_name, username, password) values(?,?,?,?)";
 
         try(Connection connection = DriverManager.getConnection(url, sqlUsername,sqlPassword);
-        PreparedStatement statement = connection.prepareStatement(insertSQL)){
+            PreparedStatement statement = connection.prepareStatement(insertSQL)){
             statement.setString(1, entity.getFirstName());
             statement.setString(2,entity.getLastName());
             statement.setString(3,entity.getUserName());
+            statement.setString(4,entity.getPassword());
 
             int response = statement.executeUpdate();
 
-            // de scos user-ul din DB + setId inainte de salvare in memory
-            if(response != 0){
-                Optional<Long> id = getIDFromDB(entity);
-
-                if(id.isPresent()){
-                    entity.setId(id.get());
-
-                    // salvare si in memorie
-                    super.save(entity);
-                }
-                else{
-                    return Optional.empty();
-                }
-            }
-
-            return Optional.empty();
-            //return response == 0 ? Optional.empty() : Optional.of(entity);
+            return response == 0 ? Optional.empty() : Optional.of(entity);
         }
         catch(SQLException e){
             throw new RuntimeException(e);
@@ -164,8 +114,8 @@ public class UserDBRepository extends AbstractDBRepository<Long, User>{
     }
 
     @Override
-    public Optional<User> delete(Long longID) {
-        if(longID == null){
+    public Optional<User> delete(Long aLong) {
+        if(aLong == null){
             throw new IllegalArgumentException("ID cannot be null!");
         }
 
@@ -173,27 +123,13 @@ public class UserDBRepository extends AbstractDBRepository<Long, User>{
 
         try(Connection connection = DriverManager.getConnection(url, sqlUsername, sqlPassword);
             PreparedStatement statement = connection.prepareStatement(deleteSQL)){
-            statement.setLong(1,longID);
+            statement.setLong(1,aLong);
 
-            Optional<User> foundUser = findOne(longID);
+            Optional<User> foundUser = findOne(aLong);
 
             int response = 0;
             if(foundUser.isPresent()){
-
                 response = statement.executeUpdate();
-
-                // stergere si din memorie pentru lista de prieteni a fiecarui user
-                Iterable<User> users = super.findAll();
-                for(User u:users){
-                    if(!u.getId().equals(longID)){
-                        if(u.getFriends().contains(foundUser.get())){
-                            u.deleteFriend(foundUser.get());
-
-                            super.update(u);
-                        }
-                    }
-                }
-                super.delete(longID);
             }
 
             return response == 0 ? Optional.empty() : foundUser;
@@ -226,29 +162,37 @@ public class UserDBRepository extends AbstractDBRepository<Long, User>{
 
             int response = statement.executeUpdate();
 
-            // + update in memorie!!
-            if(response != 0){
-                Optional<User> updated = super.update(entity);
-
-                if(updated.isEmpty()){
-                    Iterable<User> users = super.findAll();
-                    for(User u:users){
-                        if(!u.getId().equals(entity.getId())){
-                            if(u.getFriends().contains(beforeUpdate.get())){
-                                u.deleteFriend(beforeUpdate.get());
-                                u.addFriend(entity);
-                                super.update(u);
-                            }
-                        }
-                    }
-                }
-
-            }
-
-
             return response == 0 ?  Optional.of(entity) : Optional.empty();
         }
         catch (SQLException e){
+            throw new RuntimeException(e);
+        }
+    }
+
+    /**
+     * Returneaza id-ul entitatii din baza de date.
+     * @param entity: entitatea pentru care dorim sa aflam id-ul
+     * @return id-ul entitatii/ Optional.empty() daca aceasta nu exista in baza de date
+     */
+    private Optional<Long> getIDFromDB(User entity){
+        String getSQL = "select id from users where first_name=? and last_name=? and username=?";
+
+        try(Connection connection = DriverManager.getConnection(url, sqlUsername, sqlPassword);
+            PreparedStatement statement = connection.prepareStatement(getSQL)){
+            statement.setString(1, entity.getFirstName());
+            statement.setString(2, entity.getLastName());
+            statement.setString(3, entity.getUserName());
+
+            ResultSet resultSet = statement.executeQuery();
+
+            if(resultSet.next()){
+                Long id = resultSet.getLong("id");
+
+                return Optional.of(id);
+            }
+            return Optional.empty();
+        }
+        catch(SQLException e){
             throw new RuntimeException(e);
         }
     }
@@ -297,12 +241,12 @@ public class UserDBRepository extends AbstractDBRepository<Long, User>{
 
         String getFriendsSQL =
                 "select f.id_friend2, u.*, f.friends_from " +
-                "from friendships f left join users u on f.id_friend2 = u.id " +
-                "where f.id_friend1 = ? and f.status='accepted'" +
-                "union " +
-                "select f.id_friend1, u.*, f.friends_from " +
-                "from friendships f left join users u on f.id_friend1 = u.id " +
-                "where f.id_friend2 = ? and f.status='accepted'";
+                        "from friendships f left join users u on f.id_friend2 = u.id " +
+                        "where f.id_friend1 = ? and f.status='accepted'" +
+                        "union " +
+                        "select f.id_friend1, u.*, f.friends_from " +
+                        "from friendships f left join users u on f.id_friend1 = u.id " +
+                        "where f.id_friend2 = ? and f.status='accepted'";
         try(Connection connection = DriverManager.getConnection(url, sqlUsername, sqlPassword);
             PreparedStatement statement = connection.prepareStatement(getFriendsSQL)){
             statement.setInt(1, id_friend.intValue());
@@ -326,6 +270,37 @@ public class UserDBRepository extends AbstractDBRepository<Long, User>{
             }
 
             return friends;
+        }
+        catch(SQLException e){
+            throw new RuntimeException(e);
+        }
+    }
+
+    public int getNoFriends(Long id_friend){
+        int noFriends = 0;
+
+        String getNoFriendsSQL = "select count(*) from(\n" +
+                                 "select f.id_friend2, u.*, f.friends_from\n" +
+                                 "from friendships f left join users u on f.id_friend2 = u.id\n" +
+                                 "where f.id_friend1 = ?\n" +
+                                 "union\n" +
+                                 "select f.id_friend1, u.*, f.friends_from\n" +
+                                 "from friendships f left join users u on f.id_friend1 = u.id\n" +
+                                 "where f.id_friend2 = ?\n" +
+                                 ")";
+
+        try(Connection connection = DriverManager.getConnection(url, sqlUsername, sqlPassword);
+            PreparedStatement statement = connection.prepareStatement(getNoFriendsSQL)){
+            statement.setInt(1, id_friend.intValue());
+            statement.setInt(2, id_friend.intValue());
+
+            ResultSet resultSet = statement.executeQuery();
+
+            if(resultSet.next()){
+                noFriends = resultSet.getInt("count");
+            }
+
+            return noFriends;
         }
         catch(SQLException e){
             throw new RuntimeException(e);

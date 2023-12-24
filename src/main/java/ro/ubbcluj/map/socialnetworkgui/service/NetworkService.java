@@ -3,11 +3,18 @@ package ro.ubbcluj.map.socialnetworkgui.service;
 import javafx.util.Pair;
 import ro.ubbcluj.map.socialnetworkgui.domain.*;
 import ro.ubbcluj.map.socialnetworkgui.domain.validator.ValidationException;
+import ro.ubbcluj.map.socialnetworkgui.utils.Utils;
 import ro.ubbcluj.map.socialnetworkgui.utils.events.ChangeEventType;
 import ro.ubbcluj.map.socialnetworkgui.utils.events.UserChangeEvent;
 import ro.ubbcluj.map.socialnetworkgui.utils.observer.Observable;
 import ro.ubbcluj.map.socialnetworkgui.utils.observer.Observer;
 
+import javax.crypto.BadPaddingException;
+import javax.crypto.IllegalBlockSizeException;
+import javax.crypto.KeyGenerator;
+import javax.crypto.SecretKey;
+import javax.crypto.spec.SecretKeySpec;
+import java.security.InvalidKeyException;
 import java.sql.Date;
 import java.time.LocalDate;
 import java.util.*;
@@ -16,6 +23,10 @@ import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
 
 public class NetworkService implements Observable<UserChangeEvent> {
+    KeyGenerator keyGenerator;
+    SecretKey secretKey;
+
+
     private final UserService userService;
     private final FriendshipService friendshipService;
     private List<Observer<UserChangeEvent>> observers = new ArrayList<>();
@@ -24,7 +35,9 @@ public class NetworkService implements Observable<UserChangeEvent> {
         this.userService = userService;
         this.friendshipService = friendshipService;
 
-        updateAllUserFriends();
+        rebuildSecretKey("Zn34Mk3vhqP+sDB03jZn1g=="); // generated once!
+
+//        updateAllUserFriends();
     }
 
     /**
@@ -159,6 +172,34 @@ public class NetworkService implements Observable<UserChangeEvent> {
         }
     }
 
+    public void addUserWithPassword(String firstName, String lastName, String username, String password, String confirmedPassword) {
+        if(!password.equals(confirmedPassword)){
+            throw new ValidationException("Wrong password!");
+        }
+
+        if(password.length() < 3){
+            throw new ValidationException("Weak password!");
+        }
+
+        // criptare parola
+        String encryptedPassword;
+        try{
+            encryptedPassword = Utils.encrypt(password, secretKey);
+        }
+        catch(IllegalBlockSizeException | BadPaddingException | InvalidKeyException e){
+            throw new RuntimeException(e);
+        }
+
+
+        User user = new User(firstName, lastName, username, encryptedPassword);
+
+        if(userService.getUserByUserName(username).isPresent()){
+            throw new ValidationException("This username is already in use!");
+        }
+
+        boolean flag = userService.addEntity(user);
+    }
+
     /**
      * Sterge un user.
      *
@@ -204,7 +245,7 @@ public class NetworkService implements Observable<UserChangeEvent> {
         }*/
 
         Optional<User> dUser =  userService.deleteEntity(deletedUser.get());
-        dUser.ifPresent(user -> notifyObservers(new UserChangeEvent(ChangeEventType.DELETE, user)));
+//        dUser.ifPresent(user -> notifyObservers(new UserChangeEvent(ChangeEventType.DELETE, user)));
         return dUser;
     }
 
@@ -352,23 +393,38 @@ public class NetworkService implements Observable<UserChangeEvent> {
      * Returneaza o lista cu username-urile cu care un user a avut conversatii.
      * @return
      */
-    public Set<String> getUsernamesForMessagesOfUser(String username){
+    public Set<String> getUsernamesForMessagesOfUser(String username, int pageNo, int pageSize){
         Set<String> result = new HashSet<>();
 
-        Iterable<Message> allMessages = getAllMessages();
+//        Iterable<Message> allMessages = getAllMessages();
 
         Optional<User> user = userService.getUserByUserName(username);
 
         if(user.isEmpty())
             return result;
 
-        for(Message m:allMessages){
-            if(m.getIDReceiver().equals(user.get().getId())){
-                Optional<User> sender = userService.getUserByID(m.getIDSender());
+//        Iterable<Message> allMessages = userService.getMessagePage(user.get().getId(), pageNo, pageSize);
+//
+//        for(Message m:allMessages){
+//            if(m.getIDReceiver().equals(user.get().getId())){
+//                Optional<User> sender = userService.getUserByID(m.getIDSender());
+//                sender.ifPresent(value -> result.add(value.getUserName()));
+//            }
+//            else if(m.getIDSender().equals(user.get().getId())){
+//                Optional<User> receiver = userService.getUserByID(m.getIDReceiver());
+//                receiver.ifPresent(value -> result.add(value.getUserName()));
+//            }
+//        }
+
+        Iterable<Tuple<Long, Long>> allUsernames = userService.getMessagePage(user.get().getId(), pageNo, pageSize);
+
+        for(Tuple<Long,Long> t: allUsernames){
+            if(t.getLeft().equals(user.get().getId())){
+                Optional<User> sender = userService.getUserByID(t.getRight());
                 sender.ifPresent(value -> result.add(value.getUserName()));
             }
-            else if(m.getIDSender().equals(user.get().getId())){
-                Optional<User> receiver = userService.getUserByID(m.getIDReceiver());
+            else if(t.getRight().equals(user.get().getId())){
+                Optional<User> receiver = userService.getUserByID(t.getLeft());
                 receiver.ifPresent(value -> result.add(value.getUserName()));
             }
         }
@@ -465,6 +521,9 @@ public class NetworkService implements Observable<UserChangeEvent> {
                 .toList();
     }
 
+    /**
+     * @return toate username-urile utilizatorilor care au trimis cereri de prietenie catre user-ul cu username
+     */
     public List<String> getFriendRequestsForUsername(String username){
         Optional<User> user = userService.getUserByUserName(username);
         List<String> senderUsernames = null;
@@ -482,14 +541,23 @@ public class NetworkService implements Observable<UserChangeEvent> {
         return senderUsernames;
     }
 
+    /**
+     * @return toate username-urile prietenilor unui user
+     */
     public List<String> getUsernameForFriends(String username){
         return userService.getUsernameForFriends(username);
     }
 
+    /**
+     * @return toate username-urile userilor care nu sunt prieteni cu un user
+     */
     public List<String> getUsernameForNewPeople(String username){
         return userService.getUsernameForNewPeople(username);
     }
 
+    /**
+     * @return trimite un mesaj
+     */
     public void sendMessage(String usernameSender, String usernameReceiver, String description){
         Optional<User> sender = userService.getUserByUserName(usernameSender);
         Optional<User> receiver = userService.getUserByUserName(usernameReceiver);
@@ -500,6 +568,9 @@ public class NetworkService implements Observable<UserChangeEvent> {
         }
     }
 
+    /**
+     * @return toate username-urile, fara cel al user-ului
+     */
     public List<String> getAllUsernamesExceptOfUser(User user){
         String username = user.getUserName();
 
@@ -510,4 +581,82 @@ public class NetworkService implements Observable<UserChangeEvent> {
                 .filter(userName -> !userName.equals(username))
                 .toList();
     }
+
+    /**
+     * @return pagina curenta de useri
+     */
+    public Iterable<User> getCurrentUserRepositoryPage(){
+        return userService.getCurrentPage();
+    }
+
+    /**
+     * @return pagina urmatoare de useri
+     */
+    public Iterable<User> getNextUserRepositoryPage(){
+        return userService.getNextPage();
+    }
+
+    /**
+     * @return pagina specificata de parametrii dati
+     */
+    public Iterable<User> setNextUserRepositoryPage(int pageNo, int pageSize){
+        return userService.getPage(pageNo, pageSize);
+    }
+
+    /**
+     * @return numarul de pagini pentru un page size
+     */
+    public int getNoPages(Integer pageSize){
+        return userService.getNoPages(pageSize);
+    }
+
+    /**
+     * @return numarul de pagini pentru un page size
+     */
+    public int getNoPagesMessage(Integer pageSize){
+        return userService.getNoPagesMessage(pageSize);
+    }
+
+    /**
+     * @return pagina specificata de parametrii dati
+     */
+//    public Iterable<Message> setNextMessageRepositoryPage(int pageNo, int pageSize){
+//        return userService.getMessagePage(pageNo, pageSize);
+//    }
+
+    public Optional<User> verifyIdentity(String username, String password) throws IllegalBlockSizeException, BadPaddingException, InvalidKeyException {
+        Optional<User> user = userService.getUserByUserName(username);
+
+        // debug
+        System.out.println("Secret key: " + getStringValueSecretKey());
+        System.out.println("Before encryption: " + password);
+        String encrypted = Utils.encrypt(password, secretKey);
+        System.out.println("After encryption: " + encrypted);
+        System.out.println("After decryption: " + Utils.decrypt(encrypted, secretKey));
+
+        if(user.isPresent()){
+            // verific parola
+            String encryptedPassword = user.get().getPassword();
+            String descryptedPassword = Utils.decrypt(encryptedPassword, secretKey);
+
+            if(descryptedPassword.equals(password)){
+                return user;
+            }
+        }
+
+        return Optional.empty();
+    }
+
+    private void rebuildSecretKey(String stringKey){
+        // decode the base64 encoded string
+        byte[] decodedKey = Base64.getDecoder().decode(stringKey);
+
+        // rebuild key using SecretKeySpec
+        secretKey = new SecretKeySpec(decodedKey, 0, decodedKey.length, "AES");
+    }
+
+    private String getStringValueSecretKey(){
+        return Base64.getEncoder().encodeToString(secretKey.getEncoded());
+    }
+
 }

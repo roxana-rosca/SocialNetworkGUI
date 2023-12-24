@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.scene.control.*?>
+<?import javafx.scene.image.*?>
+<?import javafx.scene.layout.*?>
+
+<AnchorPane prefHeight="400.0" prefWidth="600.0" stylesheets="@../css/tableStyle.css" xmlns="http://javafx.com/javafx/17.0.2-ea" xmlns:fx="http://javafx.com/fxml/1" fx:controller="ro.ubbcluj.map.socialnetworkgui.LogInController">
+   <children>
+      <ImageView fitHeight="409.0" fitWidth="604.0" layoutY="-1.0" pickOnBounds="true" preserveRatio="true">
+         <image>
+            <Image url="@../images/buildings.jpg" />
+         </image>
+      </ImageView>
+      <ImageView fitHeight="384.0" fitWidth="514.0" layoutX="44.0" layoutY="9.0" pickOnBounds="true" preserveRatio="true">
+         <image>
+            <Image url="@../images/polaroid.png" />
+         </image>
+      </ImageView>
+      <TextField fx:id="usernameTextField" layoutX="213.0" layoutY="154.0" prefHeight="34.0" prefWidth="190.0" promptText="Username" />
+      <Label alignment="CENTER" layoutX="219.0" layoutY="59.0" prefHeight="34.0" prefWidth="162.0" text="Social Network" textAlignment="CENTER" />
+      <Label alignment="CENTER" layoutX="205.0" layoutY="321.0" prefHeight="16.0" prefWidth="190.0" text="Don't have an account?" textAlignment="CENTER" />
+      <Hyperlink alignment="CENTER" layoutX="264.0" layoutY="337.0" onAction="#handleSignUp" prefHeight="26.0" prefWidth="66.0" text="Sign up!" />
+      <Button alignment="CENTER" layoutX="260.0" layoutY="253.0" mnemonicParsing="false" onAction="#handleLogIn" prefHeight="34.0" prefWidth="73.0" text="Log in" />
+      <PasswordField fx:id="passwordTextField" layoutX="215.0" layoutY="201.0" prefHeight="34.0" prefWidth="190.0" promptText="Password" />
+   </children>
+</AnchorPane>

@@ -1,13 +1,20 @@
 package ro.ubbcluj.map.socialnetworkgui.service;
 
-import ro.ubbcluj.map.socialnetworkgui.domain.Friendship;
+import javafx.scene.control.Pagination;
 import ro.ubbcluj.map.socialnetworkgui.domain.Message;
 import ro.ubbcluj.map.socialnetworkgui.domain.Tuple;
 import ro.ubbcluj.map.socialnetworkgui.domain.User;
 import ro.ubbcluj.map.socialnetworkgui.domain.validator.ValidationException;
 import ro.ubbcluj.map.socialnetworkgui.repository.Repository;
+import ro.ubbcluj.map.socialnetworkgui.repository.database.MessageDBPagingRepository;
 import ro.ubbcluj.map.socialnetworkgui.repository.database.MessageDBRepository;
+import ro.ubbcluj.map.socialnetworkgui.repository.database.UserDBPagingRepository;
 import ro.ubbcluj.map.socialnetworkgui.repository.database.UserDBRepository;
+import ro.ubbcluj.map.socialnetworkgui.repository.database.in_memory.UserDBInMemoryRepository;
+import ro.ubbcluj.map.socialnetworkgui.repository.paging.Page;
+import ro.ubbcluj.map.socialnetworkgui.repository.paging.PageImplementation;
+import ro.ubbcluj.map.socialnetworkgui.repository.paging.Pageable;
+import ro.ubbcluj.map.socialnetworkgui.repository.paging.PageableImplementation;
 import ro.ubbcluj.map.socialnetworkgui.utils.Utils;
 
 import java.sql.Date;
@@ -22,11 +29,48 @@ public class UserService implements ServiceInterface<Long, User> {
 
     private final Repository<Long, Message> messageRepo;
 
+
     public UserService(Repository<Long, User> userRepo, Repository<Long, Message> messageRepo) {
         this.userRepo = userRepo;
 
         this.messageRepo = messageRepo;
+
     }
+
+    /**
+     * @return un iterable cu userii de pe pagina curenta
+     */
+    public Iterable<User> getCurrentPage() {
+        // stream->iterable
+        return ()->((UserDBPagingRepository) userRepo).getCurrentPage().getContent().iterator();
+    }
+
+    /**
+     * @return un iterable cu userii de pe pagina urmatoare
+     */
+    public Iterable<User> getNextPage() {
+        return ()->((UserDBPagingRepository) userRepo).getNextPage().getContent().iterator();
+    }
+
+    /**
+     *
+     * @param pageNo: numarul paginii
+     * @param pageSize: cati useri/pagina
+     * @return un iterable cu userii de pe pagina specificata de parametrii dati
+     */
+    public Iterable<User> getPage(int pageNo, int pageSize) {
+        return ()->((UserDBPagingRepository) userRepo).getPage(pageNo, pageSize).getContent().iterator();
+    }
+
+    /**
+     * @param pageSize: cati useri/pagina
+     * @return numarul de pagini pentru un pageSize
+     */
+    public int getNoPages(Integer pageSize){
+
+        return ((UserDBPagingRepository) userRepo).getNoPages(pageSize);
+    }
+
     @Override
     public boolean addEntity(User entity) {
         Optional<User> addedUser;
@@ -35,11 +79,9 @@ public class UserService implements ServiceInterface<Long, User> {
             entity.setId(Utils.generateUniqueLongID());
         }
 
-
-
         addedUser = userRepo.save(entity);
 
-        return addedUser.isEmpty();
+        return addedUser.isPresent();
     }
 
     /**
@@ -103,10 +145,9 @@ public class UserService implements ServiceInterface<Long, User> {
         Optional<User> found = getUserByUserName(entity.getUserName());
 
         // nu exista/ alege sa isi pastreze username-ul
-        if(found.isEmpty() || (found.isPresent() && found.get().getId().equals(entity.getId()))){
+        if (found.isEmpty() || (found.isPresent() && found.get().getId().equals(entity.getId()))) {
             return userRepo.update(entity);
-        }
-        else {
+        } else {
             throw new ValidationException("Can't use this username!");
         }
     }
@@ -295,63 +336,65 @@ public class UserService implements ServiceInterface<Long, User> {
 
     /**
      * Returneaza o lista cu userii ce contin un string dat in numele sau in prenumele lor.
+     *
      * @param string un string dat
      * @return o lista de useri ce indeplinesc conditia data
      */
-    public List<User> usersWithContainedString(String string){
+    public List<User> usersWithContainedString(String string) {
         Iterable<User> userIterable = getAll();
 
         Predicate<User> contineString = user -> user.getFirstName().toLowerCase().contains(string) || user.getLastName().toLowerCase().contains(string);
 
         return StreamSupport.stream(userIterable.spliterator(), false)
-                            .filter(contineString)
-                            .toList();
+                .filter(contineString)
+                .toList();
     }
 
     /**
      * @return toate mesajele existente
      */
-    public Iterable<Message> getAllMessages(){
+    public Iterable<Message> getAllMessages() {
         return messageRepo.findAll();
     }
 
     /**
      * Adauga un mesaj
+     *
      * @param message: mesajul de adaugat
      * @return Optional.of(messaje) daca s-a adaugat cu succes, Optional.empty() altfel
      */
-    public Optional<Message> addMessage(Message message){
+    public Optional<Message> addMessage(Message message) {
         return messageRepo.save(message);
     }
 
     /**
      * Returneaza un Iterable cu mesajele dintre 2 useri.
+     *
      * @param user1: un User
      * @param user2: un User
      * @return un Iterable cu mesajele dintre 2 useri
      */
     public Iterable<Message> getChatForUsers(User user1, User user2) {
         // down cast
-        MessageDBRepository messageDBRepository =  (MessageDBRepository) messageRepo;
+        MessageDBRepository messageDBRepository = (MessageDBRepository) messageRepo;
         return messageDBRepository.findChatForUsers(user1.getId(), user2.getId());
     }
 
     /**
-     *
      * @param username: username-ul unui user
      * @return o lista cu username-urile prietenilor Userului cu username-ul dat
      */
-    public List<String> getUsernameForFriends(String username){
+    public List<String> getUsernameForFriends(String username) {
         Optional<User> user = getUserByUserName(username);
         List<String> friendsUsernames = null;
 
-        if(user.isPresent()){
+        if (user.isPresent()) {
             UserDBRepository userDBRepository = (UserDBRepository) userRepo;
             Set<Tuple<User, Date>> friends = userDBRepository.getFriends(user.get().getId());
 
             friendsUsernames = new ArrayList<>();
 
-            for(var f:friends){
+            for (var f : friends) {
                 friendsUsernames.add(f.getE1().getUserName());
             }
         }
@@ -363,26 +406,45 @@ public class UserService implements ServiceInterface<Long, User> {
      * @param username: username-ul unui User
      * @return o lista cu persoanele care nu sunt prieteni cu Userul cu username-ul dat
      */
-    public List<String> getUsernameForNewPeople(String username){
+    public List<String> getUsernameForNewPeople(String username) {
         List<String> friends = getUsernameForFriends(username);
         List<String> newPeople = new ArrayList<>();
 
-        if(friends!=null){
+        if (friends != null) {
             Iterable<User> allUsers = getAll();
             newPeople = StreamSupport.stream(allUsers.spliterator(), false)
                     .filter(user -> !user.getUserName().equals(username) && !friends.contains(user.getUserName()))
                     .map(User::getUserName)
                     .toList();
             return newPeople;
-        }
-        else{
+        } else {
             return null;
         }
     }
 
-    public Optional<Message> sendMessage(User sender, User receiver, String description){
+    public Optional<Message> sendMessage(User sender, User receiver, String description) {
         Message message = new Message(sender.getId(), receiver.getId(), description);
 
         return messageRepo.save(message);
+    }
+
+    /**
+     *
+     * @param pageNo: numarul paginii
+     * @param pageSize: cate mesaje/pagina
+     * @return un iterable cu mesajele de pe pagina specificata de parametrii dati
+     */
+    public Iterable<Tuple<Long, Long>> getMessagePage(Long idUser,int pageNo, int pageSize) {
+//        return ()->((MessageDBPagingRepository) messageRepo).getPage(pageNo, pageSize).getContent().iterator();
+        return ()-> ((MessageDBPagingRepository) messageRepo).getPage(idUser, pageNo, pageSize).iterator();
+    }
+
+    /**
+     * @param pageSize: cate mesaje/pagina
+     * @return numarul de pagini pentru un pageSize
+     */
+    public int getNoPagesMessage(Integer pageSize){
+
+        return ((MessageDBPagingRepository) messageRepo).getNoPages(pageSize);
     }
 }

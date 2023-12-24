@@ -10,6 +10,7 @@ public class User extends Entity<Long> {
     private String userName;
     private List<User> friends;
     private Integer noFriends;
+    private String password;
 
     public User(String firstName, String lastName, String userName) {
         this.firstName = firstName;
@@ -17,6 +18,15 @@ public class User extends Entity<Long> {
         this.userName = userName;
         this.friends = new ArrayList<>();
         noFriends = 0;
+    }
+
+    public User(String firstName, String lastName, String userName, String password) {
+        this.firstName = firstName;
+        this.lastName = lastName;
+        this.userName = userName;
+        this.friends = new ArrayList<>();
+        this.noFriends = 0;
+        this.password = password;
     }
 
     public void addFriend(User friend) {
@@ -48,7 +58,7 @@ public class User extends Entity<Long> {
     }
 
     public Integer getNoFriends(){
-        this.noFriends = friends.size();
+//        this.noFriends = friends.size();
         return noFriends;
     }
 
@@ -61,7 +71,7 @@ public class User extends Entity<Long> {
     public String toString() {
         return firstName + ' ' +
                 lastName +
-                ", friends=" + friends.size() + '\'' +
+                ", friends=" + noFriends + '\'' +
                 ", username=@" + userName ;
     }
 
@@ -103,5 +113,17 @@ public class User extends Entity<Long> {
 
     public void setFriends(List<User> friends) {
         this.friends = friends;
+    }
+
+    public void setNoFriends(Integer noFriends) {
+        this.noFriends = noFriends;
+    }
+
+    public String getPassword() {
+        return password;
+    }
+
+    public void setPassword(String password) {
+        this.password = password;
     }
 }

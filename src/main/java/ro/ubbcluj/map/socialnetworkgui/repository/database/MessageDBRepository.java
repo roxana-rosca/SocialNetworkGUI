@@ -12,9 +12,9 @@ import java.time.ZonedDateTime;
 import java.util.*;
 
 public class MessageDBRepository implements Repository<Long, Message> {
-    private String url;
-    private String sqlUsername;
-    private String sqlPassword;
+    protected String url;
+    protected String sqlUsername;
+    protected String sqlPassword;
     private MessageValidator messageValidator;
 
     public MessageDBRepository(String url, String sqlUsername, String sqlPassword) {
@@ -196,5 +196,9 @@ public class MessageDBRepository implements Repository<Long, Message> {
             throw new RuntimeException(e);
         }
     }
+
+
+
+
 }
 

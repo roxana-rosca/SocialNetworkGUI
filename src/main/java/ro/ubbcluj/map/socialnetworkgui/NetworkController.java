@@ -1,25 +1,35 @@
 package ro.ubbcluj.map.socialnetworkgui;
 
+import javafx.application.Platform;
+import javafx.beans.value.ChangeListener;
+import javafx.beans.value.ObservableValue;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import javafx.event.ActionEvent;
 import javafx.event.EventHandler;
 import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
+import javafx.scene.Node;
 import javafx.scene.Scene;
 import javafx.scene.control.*;
 import javafx.scene.control.cell.PropertyValueFactory;
 import javafx.scene.image.Image;
+import javafx.scene.input.KeyEvent;
+import javafx.scene.input.MouseEvent;
 import javafx.scene.layout.AnchorPane;
+import javafx.scene.layout.BorderPane;
 import javafx.stage.Stage;
+import javafx.util.Callback;
 import ro.ubbcluj.map.socialnetworkgui.domain.User;
 import ro.ubbcluj.map.socialnetworkgui.domain.validator.ValidationException;
 import ro.ubbcluj.map.socialnetworkgui.service.NetworkService;
 import ro.ubbcluj.map.socialnetworkgui.utils.MessageAlert;
 import ro.ubbcluj.map.socialnetworkgui.utils.events.UserChangeEvent;
+import ro.ubbcluj.map.socialnetworkgui.utils.observer.Observable;
 import ro.ubbcluj.map.socialnetworkgui.utils.observer.Observer;
 
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.StreamSupport;
@@ -30,6 +40,8 @@ public class NetworkController implements Observer<UserChangeEvent> {
     // context menu
     private ContextMenu contextMenuUserAccount = new ContextMenu();
     private MenuItem openUserAccountMenuItem;
+    @FXML
+//    private Pagination userPagination;
 
     // tab all users
     ObservableList<User> userModel = FXCollections.observableArrayList();
@@ -42,7 +54,7 @@ public class NetworkController implements Observer<UserChangeEvent> {
     @FXML
     TableColumn<User, String> tableColumnUsername;
     @FXML
-    TableColumn<User, String> tableColumnNumberOfFriends;
+    TableColumn<User, Integer> tableColumnNumberOfFriends;
 
     @FXML
     private TextField textFieldFirstName;
@@ -51,13 +63,64 @@ public class NetworkController implements Observer<UserChangeEvent> {
     @FXML
     private TextField textFieldUsername;
 
+    // pagination
+    @FXML
+    ComboBox<Integer> pageNumberComboBox = new ComboBox<>();
+    @FXML
+    Spinner<Integer> usersOnPageSpinner = new Spinner<>();
+
     /**
      * Seteaza informatiile generale legate de service, observer etc.
      */
     public void setUserService(NetworkService networkService) {
         this.networkService = networkService;
         networkService.addObserver(this);
+
+        initializeUsersOnPageSpinner();
+        initializePageNumberComboBox();
+
         initModel();
+
+
+    }
+
+    /**
+     * Initializeaza usersOnPageSpinner
+     */
+    private void initializeUsersOnPageSpinner() {
+        int minValue = 1;
+        int maxValue = 10;
+
+        SpinnerValueFactory.IntegerSpinnerValueFactory valueFactory =
+                new SpinnerValueFactory.IntegerSpinnerValueFactory(minValue, maxValue);
+
+        usersOnPageSpinner.setValueFactory(valueFactory);
+
+        usersOnPageSpinner.getValueFactory().setValue(5);
+    }
+
+
+    /**
+     * Initializeaza pageNumberComboBox
+     */
+    private void initializePageNumberComboBox() {
+        List<Integer> list = new ArrayList<>();
+
+        Integer pageSize = usersOnPageSpinner.getValue();
+
+        int noPages = networkService.getNoPages(pageSize);
+
+        for (int i = 1; i <= noPages; i++) {
+            list.add(i);
+        }
+
+        ObservableList<Integer> pages = FXCollections.observableArrayList(list);
+
+
+        pageNumberComboBox.getItems().clear();
+        pageNumberComboBox.setItems(pages);
+
+        pageNumberComboBox.getSelectionModel().selectFirst();
     }
 
     /**
@@ -100,7 +163,7 @@ public class NetworkController implements Observer<UserChangeEvent> {
         tableColumnUsername.setCellValueFactory(new PropertyValueFactory<User, String>("userName"));
         tableColumnFirstName.setCellValueFactory(new PropertyValueFactory<User, String>("firstName"));
         tableColumnLastName.setCellValueFactory(new PropertyValueFactory<User, String>("lastName"));
-        tableColumnNumberOfFriends.setCellValueFactory(new PropertyValueFactory<User, String>("noFriends"));
+        tableColumnNumberOfFriends.setCellValueFactory(new PropertyValueFactory<User, Integer>("noFriends"));
 
         userTableView.setRowFactory(tv -> {
             TableRow<User> row = new TableRow<>();
@@ -131,18 +194,43 @@ public class NetworkController implements Observer<UserChangeEvent> {
 
         userTableView.setItems(userModel);
 
+
+        // paginator
+        pageNumberComboBox.setOnAction(event -> {
+            Integer selectedValue = pageNumberComboBox.getValue();
+            System.out.println("Selected value: " + selectedValue);
+
+            initModel();
+        });
+
+
+        usersOnPageSpinner.setOnMouseClicked(event -> {
+            System.out.println("Mouse clicked");
+
+            initializePageNumberComboBox();
+            initModel();
+        });
+
     }
 
     /**
      * Initializeaza tabela cu toti userii.
      */
     private void initModel() {
-        Iterable<User> userIterable = networkService.getAllUsers();
+        Integer pageNo = pageNumberComboBox.getValue();
+        Integer pageSize = usersOnPageSpinner.getValue();
+
+        if (pageNo == null) {
+            pageNo = 1;
+        }
+
+        Iterable<User> userIterable = networkService.setNextUserRepositoryPage(pageNo, pageSize);
 
         List<User> userList = StreamSupport.stream(userIterable.spliterator(), false)
                 .toList();
         userModel.setAll(userList);
     }
+
 
     /**
      * Salveaza un user.
@@ -216,6 +304,7 @@ public class NetworkController implements Observer<UserChangeEvent> {
 
     /**
      * Handler pentru stergere user.
+     *
      * @param actionEvent
      */
     @FXML
@@ -244,6 +333,7 @@ public class NetworkController implements Observer<UserChangeEvent> {
 
     /**
      * Handler pentru modificare user.
+     *
      * @param actionEvent
      */
     @FXML
@@ -268,6 +358,7 @@ public class NetworkController implements Observer<UserChangeEvent> {
      */
     @Override
     public void update(UserChangeEvent userChangeEvent) {
+        initializePageNumberComboBox();
         initModel();
     }
 }
